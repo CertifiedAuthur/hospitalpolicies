@@ -1,0 +1,4 @@
+venv/
+files.db
+.streamlit/
+__pycache__/
