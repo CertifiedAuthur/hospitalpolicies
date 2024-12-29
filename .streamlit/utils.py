@@ -5,11 +5,7 @@ from unstructured.cleaners.core import (
     replace_unicode_quotes,
 )
 from langchain_community.vectorstores import FAISS
-import openai
-import streamlit as st
-
-
-openai_apikey = st.secrets["OPENAI_API_KEY"]
+from langchain_huggingface import HuggingFaceEmbeddings
 
 def unbold_text(text):
     # Mapping of bold numbers to their regular equivalents
@@ -126,7 +122,7 @@ def format_response(response):
 
 
 def create_empty_vectordb():
-    embeddings = openai(model_name="text-embedding-ada-002", api_key = openai_apikey)
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     texts = [
         "No documents are available for this section. Upload documents to get accurate results.",
         "Placeholder content to initialize FAISS."
