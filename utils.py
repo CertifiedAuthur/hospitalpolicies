@@ -8,7 +8,7 @@ from langchain_community.vectorstores import FAISS
 import openai
 import streamlit as st
 
-openai.api_key = st.secrets["OPENAI"]["OPENAI_API_KEY"]
+# openai.api_key = st.secrets["OPENAI"]["OPENAI_API_KEY"]
 
 def unbold_text(text):
     # Mapping of bold numbers to their regular equivalents
@@ -123,10 +123,10 @@ def format_response(response):
     return formatted_response
 
 
-def create_empty_vectordb():
-    embeddings = openai(model_name="text-embedding-ada-002")
-    texts = [
-        "No documents are available for this section. Upload documents to get accurate results.",
-        "Placeholder content to initialize FAISS."
-    ]
-    return FAISS.from_texts(texts, embeddings)
+# def create_empty_vectordb():
+#     embeddings = openai(model_name="text-embedding-ada-002")
+#     texts = [
+#         "No documents are available for this section. Upload documents to get accurate results.",
+#         "Placeholder content to initialize FAISS."
+#     ]
+#     return FAISS.from_texts(texts, embeddings)
