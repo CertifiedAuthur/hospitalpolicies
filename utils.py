@@ -123,7 +123,7 @@ def format_response(response):
     formatted_response = '\n'.join(sentences)
     return formatted_response
 
-openai.openai_apikey = openai_apikey
+openai.api_key = openai_apikey
 
 def create_empty_vectordb():
     embeddings = openai(model_name="text-embedding-ada-002")
