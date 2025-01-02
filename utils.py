@@ -9,7 +9,7 @@ import openai
 import streamlit as st
 
 
-openai_apikey = st.secrets["OPENAI"]["OPENAI_API_KEY"]
+openai.api_key = st.secrets["OPENAI"]["OPENAI_API_KEY"]
 
 def unbold_text(text):
     # Mapping of bold numbers to their regular equivalents
@@ -123,7 +123,6 @@ def format_response(response):
     formatted_response = '\n'.join(sentences)
     return formatted_response
 
-openai.api_key = openai_apikey
 
 def create_empty_vectordb():
     embeddings = openai(model_name="text-embedding-ada-002")
