@@ -123,10 +123,10 @@ def format_response(response):
     formatted_response = '\n'.join(sentences)
     return formatted_response
 
-
+openai.openai_apikey = openai_apikey
 
 def create_empty_vectordb():
-    embeddings = openai(model_name="text-embedding-ada-002", api_key = openai_apikey)
+    embeddings = openai(model_name="text-embedding-ada-002")
     texts = [
         "No documents are available for this section. Upload documents to get accurate results.",
         "Placeholder content to initialize FAISS."
