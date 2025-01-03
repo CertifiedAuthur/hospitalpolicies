@@ -9,6 +9,8 @@ import openai
 import streamlit as st
 
 openai.api_key = st.secrets["OPENAI"]["OPENAI_API_KEY"]
+st.write("OpenAI API Key Loaded:", st.secrets["OPENAI"]["OPENAI_API_KEY"][:5], "...")
+
 
 def unbold_text(text):
     # Mapping of bold numbers to their regular equivalents
