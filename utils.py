@@ -8,8 +8,8 @@ from langchain_community.vectorstores import FAISS
 import openai
 import streamlit as st
 
-openai.api_key = st.secrets["OPENAI"]["OPENAI_API_KEY"]
-st.write("OpenAI API Key Loaded:", st.secrets["OPENAI"]["OPENAI_API_KEY"][:15], "...")
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+# st.write("OpenAI API Key Loaded:", st.secrets["OPENAI_API_KEY"][:15], "...")
 
 
 def unbold_text(text):
