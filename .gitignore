@@ -169,6 +169,7 @@ uploaded_files
 .streamlit/
 LightRAG/
 temp_files/
+analysis_workspace/
 
 <<<<<<< HEAD
 data/
