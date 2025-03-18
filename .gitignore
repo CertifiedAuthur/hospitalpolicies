@@ -170,6 +170,9 @@ uploaded_files
 LightRAG/
 temp_files/
 analysis_workspace/
+fastapi_server.py
+ngrok.exe
+client_secret.json
 
 <<<<<<< HEAD
 data/
