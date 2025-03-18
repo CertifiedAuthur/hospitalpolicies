@@ -49,11 +49,13 @@ def initialize_session_state():
 
 
 # Define directory and file paths
-AUTH_DIR = Path.cwd() / ".auth"
-AUTH_DIR.mkdir(exist_ok=True)  # Ensure directory exists
+# Define a temporary storage directory
+auth_cache_dir = Path(tempfile.gettempdir()) / "auth_cache"
+auth_cache_dir.mkdir(exist_ok=True)  # Ensure directory exists
 
-credentials_path = AUTH_DIR / "credentials.json"
-auth_status_path = AUTH_DIR / "auth_status.json"
+client_secret_path = auth_cache_dir / "client_secret.json"
+auth_status_path = auth_cache_dir / "auth_success.txt"
+credentials_path = auth_cache_dir / "credentials.json"
 
 
 # Helper Function to Clean and Parse JSON
