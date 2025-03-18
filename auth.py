@@ -261,19 +261,40 @@ def auth_flow():
     if client_config:
         with client_secret_path.open("wb") as f:
             f.write(client_config.read())
+            st.rerun()
 
-    if not client_secret_path.exists():
-        st.warning("Please upload your client secret JSON file.")
-        return {"status": "missing_client_secret"}
+    # if not st.session_state.get("client_secret_uploaded"):
+    #     client_config = st.sidebar.file_uploader(
+    #         "Upload client secret JSON", 
+    #         type=["json"],
+    #         key="client_secret_uploader"
+    #     )
+        
+        # if client_config:
+        #     # Save file and mark as uploaded
+        #     client_secret_path.write_bytes(client_config.read())
+        #     st.session_state.client_secret_uploaded = True
+        #     st.rerun()
 
     client_config = json.loads(client_secret_path.read_text())
-    redirect_uri = "http://localhost:8501"
+    redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
     
-    flow = Flow.from_client_config(
-        client_config,
-        scopes=scopes,
-        redirect_uri=redirect_uri,
-    )
+    # After client secret is uploaded
+    if client_secret_path.exists():
+        client_config = json.loads(client_secret_path.read_text())
+        
+        # Auto-initiate OAuth flow if not authenticated
+        if not auth_status_path.exists():
+            flow = Flow.from_client_config(
+                client_config,
+                scopes=scopes,
+                redirect_uri=redirect_uri,
+            )
+    # flow = Flow.from_client_config(
+    #     client_config,
+    #     scopes=scopes,
+    #     redirect_uri=redirect_uri,
+    # )
 
     # Step 2: Handle OAuth Authentication
     auth_code = st.query_params.get("code")

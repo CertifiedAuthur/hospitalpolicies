@@ -374,6 +374,10 @@ def main():
             keys_to_clear = ["google_drive_link", "client_name", "pdf_file_name", "show_gdrive_form"]
             for key in keys_to_clear:
                 st.session_state.pop(key, None)
+                
+            # Collapse the form
+            st.session_state.show_gdocs_form = False
+            st.rerun()
 
         except Exception as e:
             st.error(f"Upload failed: {str(e)}")
