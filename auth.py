@@ -259,9 +259,33 @@ def auth_flow():
     # Step 1: Upload client secret JSON file (only once)
     client_config = st.sidebar.file_uploader("Upload your client secret JSON file", type=["json"])
     if client_config:
-        with client_secret_path.open("wb") as f:
-            f.write(client_config.read())
+        # Ensure directory exists before writing
+        auth_cache_dir.mkdir(exist_ok=True, parents=True)
+        
+        # Write file with verification
+        try:
+            with client_secret_path.open("wb") as f:
+                f.write(client_config.read())
+            st.session_state.client_secret_uploaded = True
             st.rerun()
+        except Exception as e:
+            st.error(f"Error saving client secret: {str(e)}")
+            return
+        
+    if not client_secret_path.exists():
+        st.warning("Please upload your client secret JSON file.")
+        return {"status": "missing_client_secret"}
+
+    # Add file read error handling
+    try:
+        client_config = json.loads(client_secret_path.read_text())
+    except Exception as e:
+        st.error(f"Error reading client secret: {str(e)}")
+        return
+    # if client_config:
+    #     with client_secret_path.open("wb") as f:
+    #         f.write(client_config.read())
+    #         st.rerun()
 
     # if not st.session_state.get("client_secret_uploaded"):
     #     client_config = st.sidebar.file_uploader(
