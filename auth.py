@@ -282,23 +282,6 @@ def auth_flow():
     except Exception as e:
         st.error(f"Error reading client secret: {str(e)}")
         return
-    # if client_config:
-    #     with client_secret_path.open("wb") as f:
-    #         f.write(client_config.read())
-    #         st.rerun()
-
-    # if not st.session_state.get("client_secret_uploaded"):
-    #     client_config = st.sidebar.file_uploader(
-    #         "Upload client secret JSON", 
-    #         type=["json"],
-    #         key="client_secret_uploader"
-    #     )
-        
-        # if client_config:
-        #     # Save file and mark as uploaded
-        #     client_secret_path.write_bytes(client_config.read())
-        #     st.session_state.client_secret_uploaded = True
-        #     st.rerun()
 
     client_config = json.loads(client_secret_path.read_text())
     redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
@@ -362,47 +345,47 @@ def auth_flow():
         return {"status": "waiting_for_login"}
 
 
-# def logout():
-#     """Completely clears all authentication artifacts"""
-    
-#     # Remove authentication files
-#     if auth_status_path.exists():
-#         auth_status_path.unlink()
-#     if credentials_path.exists():
-#         credentials_path.unlink()
-
-#     # Ensure no residual credentials in session state
-#     if "credentials" in st.session_state:
-#         del st.session_state["credentials"]
-#     if "user_info" in st.session_state:
-#         del st.session_state["user_info"]
-#     st.session_state.pop("credentials", None)
-#     st.session_state.pop("auth_code", None)
-
-#     # Clear browser storage
-#     st.session_state.clear()  # Alternative to looping through keys
-#     st.query_params.update(logout="true")  # Force query param update
-#     st.sidebar.success("Logged out. Please sign in again.")
-
-#     # Force re-run
-#     st.rerun()
-    
 def logout():
-    """Clears session but preserves auth files"""
+    """Completely clears all authentication artifacts"""
+    
+    # Remove authentication files
     if auth_status_path.exists():
         auth_status_path.unlink()
     if credentials_path.exists():
         credentials_path.unlink()
-        
-    # Remove session credentials but keep files
-    keys = ["credentials", "user_info", "auth_code", 
-           "drive_service", "docs_service"]
-    for key in keys:
-        st.session_state.pop(key, None)
-    
-    st.query_params.update(logout="true")
+
+    # Ensure no residual credentials in session state
+    if "credentials" in st.session_state:
+        del st.session_state["credentials"]
+    if "user_info" in st.session_state:
+        del st.session_state["user_info"]
+    st.session_state.pop("credentials", None)
+    st.session_state.pop("auth_code", None)
+
+    # Clear browser storage
+    st.session_state.clear()  # Alternative to looping through keys
+    st.query_params.update(logout="true")  # Force query param update
     st.sidebar.success("Logged out. Please sign in again.")
+
+    # Force re-run
     st.rerun()
+    
+# def logout():
+#     """Clears session but preserves auth files"""
+#     if auth_status_path.exists():
+#         auth_status_path.unlink()
+#     if credentials_path.exists():
+#         credentials_path.unlink()
+        
+#     # Remove session credentials but keep files
+#     keys = ["credentials", "user_info", "auth_code", 
+#            "drive_service", "docs_service"]
+#     for key in keys:
+#         st.session_state.pop(key, None)
+    
+#     st.query_params.update(logout="true")
+#     st.sidebar.success("Logged out. Please sign in again.")
+#     st.rerun()
     
     
 def validate_session():
