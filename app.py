@@ -48,7 +48,6 @@ def initialize_session_state():
         st.session_state.upload_triggered = False
 
 
-# Define directory and file paths
 # Define a temporary storage directory
 auth_cache_dir = Path(tempfile.gettempdir()) / "auth_cache"
 auth_cache_dir.mkdir(exist_ok=True)  # Ensure directory exists
