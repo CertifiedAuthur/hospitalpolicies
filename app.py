@@ -48,6 +48,14 @@ def initialize_session_state():
         st.session_state.upload_triggered = False
 
 
+# Define directory and file paths
+AUTH_DIR = Path.cwd() / ".auth"
+AUTH_DIR.mkdir(exist_ok=True)  # Ensure directory exists
+
+credentials_path = AUTH_DIR / "credentials.json"
+auth_status_path = AUTH_DIR / "auth_status.json"
+
+
 # Helper Function to Clean and Parse JSON
 def clean_and_parse_json(raw_json):
     try:
