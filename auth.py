@@ -35,13 +35,12 @@ def init_session():
     if "credentials" not in st.session_state:
         st.session_state["credentials"] = None
         
-# Define a temporary storage directory
-auth_cache_dir = Path(tempfile.gettempdir()) / "auth_cache"
-auth_cache_dir.mkdir(exist_ok=True)  # Ensure directory exists
+auth_cache_dir = Path(__file__).parent / "auth_cache"
+auth_cache_dir.mkdir(exist_ok=True, parents=True)
 
 client_secret_path = auth_cache_dir / "client_secret.json"
 auth_status_path = auth_cache_dir / "auth_success.txt"
-credentials_path = auth_cache_dir / "credentials.json"  # Store OAuth credentials
+credentials_path = auth_cache_dir / "credentials.json"
 
 scopes=[
         "https://www.googleapis.com/auth/userinfo.profile",
@@ -318,29 +317,46 @@ def auth_flow():
         return {"status": "waiting_for_login"}
 
 
-def logout():
-    """Completely clears all authentication artifacts"""
+# def logout():
+#     """Completely clears all authentication artifacts"""
     
-    # Remove authentication files
+#     # Remove authentication files
+#     if auth_status_path.exists():
+#         auth_status_path.unlink()
+#     if credentials_path.exists():
+#         credentials_path.unlink()
+
+#     # Ensure no residual credentials in session state
+#     if "credentials" in st.session_state:
+#         del st.session_state["credentials"]
+#     if "user_info" in st.session_state:
+#         del st.session_state["user_info"]
+#     st.session_state.pop("credentials", None)
+#     st.session_state.pop("auth_code", None)
+
+#     # Clear browser storage
+#     st.session_state.clear()  # Alternative to looping through keys
+#     st.query_params.update(logout="true")  # Force query param update
+#     st.sidebar.success("Logged out. Please sign in again.")
+
+#     # Force re-run
+#     st.rerun()
+    
+def logout():
+    """Clears session but preserves auth files"""
     if auth_status_path.exists():
         auth_status_path.unlink()
     if credentials_path.exists():
         credentials_path.unlink()
-
-    # Ensure no residual credentials in session state
-    if "credentials" in st.session_state:
-        del st.session_state["credentials"]
-    if "user_info" in st.session_state:
-        del st.session_state["user_info"]
-    st.session_state.pop("credentials", None)
-    st.session_state.pop("auth_code", None)
-
-    # Clear browser storage
-    st.session_state.clear()  # Alternative to looping through keys
-    st.query_params.update(logout="true")  # Force query param update
+        
+    # Remove session credentials but keep files
+    keys = ["credentials", "user_info", "auth_code", 
+           "drive_service", "docs_service"]
+    for key in keys:
+        st.session_state.pop(key, None)
+    
+    st.query_params.update(logout="true")
     st.sidebar.success("Logged out. Please sign in again.")
-
-    # Force re-run
     st.rerun()
     
     

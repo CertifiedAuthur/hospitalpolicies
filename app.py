@@ -48,9 +48,8 @@ def initialize_session_state():
         st.session_state.upload_triggered = False
 
 
-# Define a temporary storage directory
-auth_cache_dir = Path(tempfile.gettempdir()) / "auth_cache"
-auth_cache_dir.mkdir(exist_ok=True)  # Ensure directory exists
+auth_cache_dir = Path(__file__).parent / "auth_cache"
+auth_cache_dir.mkdir(exist_ok=True, parents=True)
 
 client_secret_path = auth_cache_dir / "client_secret.json"
 auth_status_path = auth_cache_dir / "auth_success.txt"
