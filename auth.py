@@ -272,23 +272,7 @@ def logout():
 
     # Force re-run
     st.rerun()
-    
-# def logout():
-#     """Clears session but preserves auth files"""
-#     if auth_status_path.exists():
-#         auth_status_path.unlink()
-#     if credentials_path.exists():
-#         credentials_path.unlink()
-        
-#     # Remove session credentials but keep files
-#     keys = ["credentials", "user_info", "auth_code", 
-#            "drive_service", "docs_service"]
-#     for key in keys:
-#         st.session_state.pop(key, None)
-    
-#     st.query_params.update(logout="true")
-#     st.sidebar.success("Logged out. Please sign in again.")
-#     st.rerun()
+
     
     
 def validate_session():
