@@ -186,8 +186,8 @@ def auth_flow():
         return
 
     client_config = json.loads(client_secret_path.read_text())
-    # redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
-    redirect_uri = "http://localhost:8501"
+    redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
+    # redirect_uri = "http://localhost:8501"
     
     # After client secret is uploaded
     if client_secret_path.exists():
