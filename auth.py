@@ -63,9 +63,6 @@ def auth_flow():
     credentials_path = auth_cache_dir / "credentials.json"
     auth_status_path = auth_cache_dir / "auth_success.txt"
 
-    # Debug: Show actual paths
-    st.sidebar.write(f"Auth cache location: {auth_cache_dir.resolve()}")
-
     # 1. Check existing authentication first
     if auth_status_path.exists() and credentials_path.exists():
         try:
