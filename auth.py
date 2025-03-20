@@ -34,10 +34,10 @@ def init_session():
         st.session_state["auth_code"] = None
     if "credentials" not in st.session_state:
         st.session_state["credentials"] = None
+    if "client_secret_uploaded" not in st.session_state:
+        st.session_state.client_secret_uploaded = False
         
-auth_cache_dir = Path("./auth_cache")
-auth_cache_dir.mkdir(parents=True, exist_ok=True)
-
+auth_cache_dir = Path(__file__).parent / "auth_cache"
 client_secret_path = auth_cache_dir / "client_secret.json"
 auth_status_path = auth_cache_dir / "auth_success.txt"
 credentials_path = auth_cache_dir / "credentials.json"
@@ -52,303 +52,118 @@ scopes=[
     ]
 
 
-# def auth_flow():
-#     st.sidebar.title("Authentication")
-
-#     # Add a logout button in the sidebar
-#     if st.sidebar.button("Logout"):
-#         logout()
-
-#     # Step 1: Check if user is already logged in
-#     if auth_status_path.exists() and credentials_path.exists():
-#         with open(credentials_path, "r") as f:
-#             credentials_json = json.load(f)
-
-        
-#         st.session_state["credentials"] = credentials_json
-#         st.write(credentials_json)
-#         st.sidebar.success(f"Already authenticated as {credentials_json['email']}!")
-#         st.write(f"Hello {credentials_json['given_name']}, welcome back!")
-#         return credentials_json 
-
-#     # Step 2: Upload client secret JSON file (only needed once)
-#     client_config = st.sidebar.file_uploader("Upload your client secret JSON file", type=["json"])
-    
-#     if client_config:
-#         # Save the uploaded file to the temp directory
-#         with client_secret_path.open("wb") as f:
-#             f.write(client_config.read())
-
-#     # Step 3: Check if client secret file exists
-#     if not client_secret_path.exists():
-#         st.warning("Please upload your client secret JSON file.")
-#         return
-
-#     client_config = json.loads(client_secret_path.read_text())
-
-#     redirect_uri = "http://localhost:8501"
-    
-#     flow = Flow.from_client_config(
-#     client_config,
-#     scopes=scopes,
-#     redirect_uri=redirect_uri,
-# )
-
-#     # Step 4: Handle OAuth Authentication
-#     auth_code = st.query_params.get("code")
-
-#     if auth_code:
-#         flow = Flow.from_client_config(
-#             client_config,
-#             scopes=scopes,
-#             redirect_uri=redirect_uri,
-#         )
-
-#         # Fetch token using the auth code
-#         flow.fetch_token(code=auth_code)
-#         credentials = flow.credentials
-#         user_info_service = build("oauth2", "v2", credentials=credentials)
-#         user_info = user_info_service.userinfo().get().execute()
-
-#         assert user_info.get("email"), "Email not found in response"
-
-#         # ✅ Save credentials persistently
-#         with open(credentials_path, "w") as f:
-#             json.dump({"email": user_info["email"], "given_name": user_info.get("given_name", ""), "token": credentials.to_json()}, f)
-
-#         # ✅ Create a flag file to mark successful authentication
-#         auth_status_path.write_text("Authenticated")
-
-#         # ✅ Store in session state to avoid redundant API calls
-#         st.session_state["credentials"] = {"email": user_info["email"], "token": credentials.to_json()}
-
-#         st.sidebar.success(f"Login Successful! Welcome, {user_info['email']}")
-#         st.write(f"Hello {user_info['given_name']}, welcome back to the Proposal Generator APP!")
-#         # Display user profile picture if available
-#         if "picture" in user_info:
-#             st.sidebar.image(user_info["picture"], caption=user_info["name"], width=100)
-#         return True
-
-#     else:
-#         authorization_url, state = flow.authorization_url(
-#             access_type="offline",
-#             prompt="consent",
-#             include_granted_scopes="true",
-#         )
-#         st.link_button("Sign in with Google", authorization_url)
-#         return False
-
-
-# def auth_flow():
-#     st.sidebar.title("Authentication")
-
-#     # Check if user is already authenticated
-#     if auth_status_path.exists() and credentials_path.exists():
-#         with open(credentials_path, "r") as f:
-#             credentials_json = json.load(f)
-        
-#         # Ensure that the "token" field is a dictionary.
-#         if isinstance(credentials_json.get("token"), str):
-#             try:
-#                 credentials_json["token"] = json.loads(credentials_json["token"])
-#             except json.JSONDecodeError:
-#                 raise ValueError("Invalid token format in stored credentials.")
-        
-#         st.session_state["credentials"] = credentials_json
-#         st.sidebar.success(f"Already authenticated as {credentials_json['email']}!")
-#         return credentials_json
-
-#     # Step 1: Upload client secret JSON file (only once)
-#     client_config = st.sidebar.file_uploader("Upload your client secret JSON file", type=["json"])
-#     if client_config:
-#         # Ensure directory exists before writing
-#         auth_cache_dir.mkdir(exist_ok=True, parents=True)
-        
-#         # Write file with verification
-#         try:
-#             with client_secret_path.open("wb") as f:
-#                 f.write(client_config.read())
-#             st.session_state.client_secret_uploaded = True
-#             st.rerun()
-#         except Exception as e:
-#             st.error(f"Error saving client secret: {str(e)}")
-#             return
-        
-#     if not client_secret_path.exists():
-#         st.warning("Please upload your client secret JSON file.")
-#         return {"status": "missing_client_secret"}
-
-#     # Add file read error handling
-#     try:
-#         client_config = json.loads(client_secret_path.read_text())
-#     except Exception as e:
-#         st.error(f"Error reading client secret: {str(e)}")
-#         return
-
-#     client_config = json.loads(client_secret_path.read_text())
-#     redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
-#     # redirect_uri = "http://localhost:8501"
-    
-#     # After client secret is uploaded
-#     if client_secret_path.exists():
-#         client_config = json.loads(client_secret_path.read_text())
-        
-#         # Auto-initiate OAuth flow if not authenticated
-#         if not auth_status_path.exists():
-#             flow = Flow.from_client_config(
-#                 client_config,
-#                 scopes=scopes,
-#                 redirect_uri=redirect_uri,
-#             )
-#     # flow = Flow.from_client_config(
-#     #     client_config,
-#     #     scopes=scopes,
-#     #     redirect_uri=redirect_uri,
-#     # )
-
-#     # Step 2: Handle OAuth Authentication
-#     auth_code = st.query_params.get("code")
-#     if auth_code and "auth_code" not in st.session_state:
-#         try:
-#             flow.fetch_token(code=auth_code)
-#             credentials = flow.credentials
-#             user_info_service = build("oauth2", "v2", credentials=credentials)
-#             user_info = user_info_service.userinfo().get().execute()
-
-#             assert user_info.get("email"), "Email not found in response"
-
-#             # Save credentials as a dictionary, but ensure token is stored as a dict
-#             credentials_data = {
-#                 "email": user_info["email"],
-#                 "given_name": user_info.get("given_name", ""),
-#                 "token": json.loads(credentials.to_json()),  # Parse the token into a dict
-#             }
-#             with open(credentials_path, "w") as f:
-#                 json.dump(credentials_data, f)
-
-#             auth_status_path.write_text("Authenticated")
-#             st.session_state["credentials"] = credentials_data
-#             st.session_state["auth_code"] = auth_code  # Prevent reusing auth_code
-
-#             st.sidebar.success(f"Login Successful! Welcome, {user_info['email']}")
-#             return flow.credentials
-
-#         except Exception as e:
-#             st.error(f"Authentication failed: {str(e)}")
-#             logout()  # Ensure session is cleared
-#             return {"status": "error", "message": str(e)}
-
-#     else:
-#         authorization_url, _ = flow.authorization_url(
-#             access_type="offline",
-#             prompt="consent",
-#             include_granted_scopes="true",
-#         )
-#         st.link_button("Sign in with Google", authorization_url)
-#         return {"status": "waiting_for_login"}
-
 def auth_flow():
     st.sidebar.title("Authentication")
-    flow = None  # ✅ Initialize `flow` to prevent UnboundLocalError
-
-    # Check if user is already authenticated
-    if auth_status_path.exists() and credentials_path.exists():
-        with open(credentials_path, "r") as f:
-            credentials_json = json.load(f)
-        
-        # Ensure that the "token" field is a dictionary.
-        if isinstance(credentials_json.get("token"), str):
-            try:
-                credentials_json["token"] = json.loads(credentials_json["token"])
-            except json.JSONDecodeError:
-                raise ValueError("Invalid token format in stored credentials.")
-        
-        st.session_state["credentials"] = credentials_json
-        st.sidebar.success(f"Already authenticated as {credentials_json['email']}!")
-        return credentials_json
-
-    # Step 1: Upload client secret JSON file (only once)
-    client_config = st.sidebar.file_uploader("Upload your client secret JSON file", type=["json"])
-    if client_config:
-        auth_cache_dir.mkdir(exist_ok=True, parents=True)
-        try:
-            with client_secret_path.open("wb") as f:
-                f.write(client_config.read())
-            st.session_state.client_secret_uploaded = True
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error saving client secret: {str(e)}")
-            return
     
-    if not client_secret_path.exists():
-        st.warning("Please upload your client secret JSON file.")
-        return {"status": "missing_client_secret"}
+    # Initialize with absolute paths
+    auth_cache_dir = Path(__file__).parent / "auth_cache"
+    auth_cache_dir.mkdir(parents=True, exist_ok=True)
+    
+    client_secret_path = auth_cache_dir / "client_secret.json"
+    credentials_path = auth_cache_dir / "credentials.json"
+    auth_status_path = auth_cache_dir / "auth_success.txt"
 
-    try:
-        client_config = json.loads(client_secret_path.read_text())
-    except Exception as e:
-        st.error(f"Error reading client secret: {str(e)}")
-        return
+    # Debug: Show actual paths
+    st.sidebar.write(f"Auth cache location: {auth_cache_dir.resolve()}")
+
+    # 1. Check existing authentication first
+    if auth_status_path.exists() and credentials_path.exists():
+        try:
+            with open(credentials_path, "r") as f:
+                credentials = json.load(f)
+            st.session_state.credentials = credentials
+            st.sidebar.success(f"Authenticated as {credentials['email']}")
+            return credentials
+        except Exception as e:
+            st.error(f"Invalid credentials: {str(e)}")
+            logout()
+
+    # 2. File upload handling with atomic write
+    if "client_secret_uploaded" not in st.session_state:
+        st.session_state.client_secret_uploaded = False
+
+    if not st.session_state.client_secret_uploaded:
+        uploaded_file = st.sidebar.file_uploader(
+            "Upload Client Secret JSON",
+            type=["json"],
+            key="client_secret_upload"
+        )
+        
+        if uploaded_file:
+            # Atomic write pattern
+            temp_path = client_secret_path.with_suffix(".tmp")
+            try:
+                # Write to temporary file first
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.getvalue())
+                
+                # Atomic rename
+                temp_path.rename(client_secret_path)
+                st.session_state.client_secret_uploaded = True
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Failed to save file: {str(e)}")
+                return
+
+    # 3. Verify file persistence
+    if not client_secret_path.exists():
+        st.warning("Please upload client secret file")
+        st.stop()
+
+    client_config = json.loads(client_secret_path.read_text())
 
     redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
+    
+    flow = Flow.from_client_config(
+        client_config,
+        scopes=scopes,
+        redirect_uri=redirect_uri,
+    )
 
-    # ✅ Ensure `flow` is initialized
-    if client_secret_path.exists():
-        client_config = json.loads(client_secret_path.read_text())
+    # Step 4: Handle OAuth Authentication
+    auth_code = st.query_params.get("code")
+
+    if auth_code:
         flow = Flow.from_client_config(
             client_config,
             scopes=scopes,
             redirect_uri=redirect_uri,
         )
 
-    # Step 2: Handle OAuth Authentication
-    auth_code = st.query_params.get("code")
+        # Fetch token using the auth code
+        flow.fetch_token(code=auth_code)
+        credentials = flow.credentials
+        user_info_service = build("oauth2", "v2", credentials=credentials)
+        user_info = user_info_service.userinfo().get().execute()
 
-    if auth_code and "auth_code" not in st.session_state:
-        if flow is None:
-            st.error("OAuth flow not initialized properly. Please try again.")
-            return {"status": "error", "message": "OAuth flow not initialized."}
+        assert user_info.get("email"), "Email not found in response"
 
-        try:
-            flow.fetch_token(code=auth_code)
-            credentials = flow.credentials
-            user_info_service = build("oauth2", "v2", credentials=credentials)
-            user_info = user_info_service.userinfo().get().execute()
+        # ✅ Save credentials persistently
+        with open(credentials_path, "w") as f:
+            json.dump({"email": user_info["email"], "given_name": user_info.get("given_name", ""), "token": credentials.to_json()}, f)
 
-            assert user_info.get("email"), "Email not found in response"
+        # ✅ Create a flag file to mark successful authentication
+        auth_status_path.write_text("Authenticated")
 
-            credentials_data = {
-                "email": user_info["email"],
-                "given_name": user_info.get("given_name", ""),
-                "token": json.loads(credentials.to_json()),
-            }
-            with open(credentials_path, "w") as f:
-                json.dump(credentials_data, f)
+        # ✅ Store in session state to avoid redundant API calls
+        st.session_state["credentials"] = {"email": user_info["email"], "token": credentials.to_json()}
 
-            auth_status_path.write_text("Authenticated")
-            st.session_state["credentials"] = credentials_data
-            st.session_state["auth_code"] = auth_code  
+        st.sidebar.success(f"Login Successful! Welcome, {user_info['email']}")
+        st.write(f"Hello {user_info['given_name']}, welcome back to the Proposal Generator APP!")
+        # Display user profile picture if available
+        if "picture" in user_info:
+            st.sidebar.image(user_info["picture"], caption=user_info["name"], width=100)
+        return True
 
-            st.sidebar.success(f"Login Successful! Welcome, {user_info['email']}")
-            return flow.credentials
-
-        except Exception as e:
-            st.error(f"Authentication failed: {str(e)}")
-            logout()
-            return {"status": "error", "message": str(e)}
-
-    elif flow is not None:
-        authorization_url, _ = flow.authorization_url(
+    else:
+        authorization_url, state = flow.authorization_url(
             access_type="offline",
             prompt="consent",
             include_granted_scopes="true",
         )
         st.link_button("Sign in with Google", authorization_url)
-        return {"status": "waiting_for_login"}
-    else:
-        st.error("Authentication flow is not properly set up.")
-        return {"status": "error", "message": "Authentication flow failed to initialize."}
-
+        return False
 
 
 def logout():
@@ -375,7 +190,6 @@ def logout():
 
     # Force re-run
     st.rerun()
-
     
     
 def validate_session():
