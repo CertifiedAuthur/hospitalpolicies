@@ -270,7 +270,6 @@ def generate_answer():
 
     with st.spinner("Expanding query..."):
         expanded_queries = generate_explicit_query(query)
-        st.write(expanded_queries)
         full_prompt = f"{custom_prompt}\n\nUser Query: {expanded_queries}"
 
     with st.spinner("Generating answer..."):
