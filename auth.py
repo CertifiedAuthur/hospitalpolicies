@@ -192,7 +192,7 @@ def auth_flow():
             # Store credentials in session state (optional)
             st.session_state.credentials = credentials_json
 
-            st.sidebar.success("✅ You're successfully logged in!")
+            st.sidebar.success("Great! You're successfully logged in. Enjoy your session!")
             return credentials_json  # ✅ Always return a dictionary
 
         except (json.JSONDecodeError, ValueError) as e:
@@ -240,7 +240,8 @@ def auth_flow():
         # Store credentials in session state
         st.session_state["credentials"] = {"email": user_info["email"], "token": credentials.to_json()}
 
-        st.sidebar.success("✅ You’ve successfully logged in!")
+        st.sidebar.success("✅ You’ve successfully logged in! Welcome aboard!")
+        st.write("Hey there! Welcome back! Let’s generate some proposals together. 🚀")
         return None
 
     else:
