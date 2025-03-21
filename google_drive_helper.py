@@ -16,10 +16,10 @@ def create_pdf(file_path, content):
     Converts Markdown content into formatted text and generates a well-spaced PDF.
     """
     
-    relevant_content = extract_relevant_content(content)
+    # relevant_content = extract_relevant_content(content)
     
     # Convert Markdown to HTML
-    html_content = markdown2.markdown(relevant_content, extras=["tables"])
+    html_content = markdown2.markdown(content, extras=["tables"])
 
     # Set up PDF document
     doc = SimpleDocTemplate(file_path, pagesize=letter)

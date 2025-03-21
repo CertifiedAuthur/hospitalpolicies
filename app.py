@@ -46,6 +46,8 @@ def initialize_session_state():
         st.session_state.proposal_text = ""
     if "upload_triggered" not in st.session_state:
         st.session_state.upload_triggered = False
+    if "query_input" not in st.session_state:
+        st.session_state.query_input = ""
 
 
 # Initialize API key from secrets
@@ -150,6 +152,91 @@ def generate_explicit_query(query):
     return response.strip()
 
 
+proposal_prompt = """
+You are an expert proposal assistant. Generate comprehensive proposals using ONLY information from these sources:
+---Knowledge Base---
+{context_data}
+
+---Response Rules---
+1. NEVER use placeholders like [Company Name] - extract real data from documents
+2. Structure proposals in this exact format:
+   **1. Executive Summary**
+   - Purpose, parties involved, key objectives
+   
+   **2. Scope of Work**  
+   - Detailed technical specifications
+   - Phased implementation plan
+   
+   **3. Pricing & Payment Terms**
+   - Itemized costs in table format
+   - Currency: Use currency from RFQ documents
+   
+   **4. Compliance & Certifications**
+   - Relevant standards met
+   - Required certifications
+   
+   **5. Attachments**
+   - List of supporting documents from knowledge base
+
+3. If information is missing:
+   - State "Required information not found in documents: [missing item]"
+   - Do NOT invent fictional details
+
+Current RFQ Requirements: {query}
+"""
+
+
+custom_prompt = """
+You are an **expert assistant specializing in proposal writing** for procurement bids. Your role is to **generate professional, structured, and detailed proposals** based on the Request for Quotation (RFQ) documents stored in the **analysis_workspace** directory. 
+
+**IMPORTANT RULES:**  
+- **DO NOT HALLUCINATE**: Only use the provided RFQ details and relevant organizational data.  
+- **IF INFORMATION IS MISSING**: Clearly state "Information not available in the RFQ document."  
+- **ENSURE A FORMAL & PROFESSIONAL TONE.**  
+
+**PROPOSAL STRUCTURE:**  
+
+    **1. Cover Page**  
+    - Include **company name, address, contact details, date, and RFQ reference number**.  
+    - Include the **recipient’s name, organization, and address**.  
+
+    **2. Executive Summary**  
+    - Provide a brief **introduction** about the company.  
+    - Summarize the **key services offered** in response to the RFQ.  
+
+    **3. Scope of Work**  
+    - Outline **each deliverable** as specified in the RFQ.  
+    - Provide **technical details, compliance requirements, and execution strategy**.  
+
+    **4. Technical Approach & Methodology**  
+    - Describe the **step-by-step process** for project execution.  
+    - Highlight **tools, technologies, and quality assurance methods**.  
+
+    **5. Project Plan & Timeline**  
+    - Include a **table of milestones** with estimated completion dates.  
+    - Ensure alignment with **RFQ deadlines and compliance requirements**.  
+
+    **6. Pricing & Payment Terms**  
+    - Provide a structured **cost breakdown per project phase**.  
+    - Outline **payment terms, tax exemptions, and invoicing policies**.  
+
+    **7. Company Experience & Past Performance**  
+    - Showcase **previous projects, certifications, and industry expertise**.  
+    - List **relevant clients, testimonials, and references**.  
+
+    **8. Compliance & Certifications**  
+    - Confirm **adherence to procurement regulations, environmental standards, and safety policies**.  
+    - Attach **insurance documentation, licensing, and regulatory approvals**.  
+
+    **9. Attachments & Supporting Documents**  
+    - Ensure **all required forms, legal documents, and compliance matrices** are attached.   
+---  
+
+Now, generate a **full proposal** using the structured format above, ensuring precision, professionalism, and clarity.
+"""
+
+
+
 
 
 # def generate_answer():
@@ -163,7 +250,7 @@ def generate_explicit_query(query):
 #             working_dir = Path("./analysis_workspace")
 #             working_dir.mkdir(parents=True, exist_ok=True)
 #             rag = RAGFactory.create_rag(str(working_dir))  
-#             response = rag.query(query, QueryParam(mode=st.session_state.search_mode))
+#             response = rag.query(query, QueryParam(mode="hybrid"))
 
 #             # Store in chat history
 #             st.session_state.chat_history.append(("You", query))
@@ -183,6 +270,8 @@ def generate_answer():
 
     with st.spinner("Expanding query..."):
         expanded_queries = generate_explicit_query(query)
+        st.write(expanded_queries)
+        full_prompt = f"{custom_prompt}\n\nUser Query: {expanded_queries}"
 
     with st.spinner("Generating answer..."):
         try:
@@ -191,7 +280,7 @@ def generate_answer():
             rag = RAGFactory.create_rag(str(working_dir))  
 
             # Send combined query to RAG
-            response = rag.query(expanded_queries, QueryParam(mode="hybrid"))
+            response = rag.query(full_prompt, QueryParam(mode="hybrid"))
 
             # Store in chat history
             st.session_state.chat_history.append(("You", query))

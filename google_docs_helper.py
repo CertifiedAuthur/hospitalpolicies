@@ -1,7 +1,5 @@
-import json
-from googleapiclient.discovery import build, Resource
+from googleapiclient.discovery import Resource
 from format_document import extract_relevant_content
-from google.oauth2.credentials import Credentials
 import re
 import markdown2
 
@@ -27,10 +25,10 @@ class GoogleDocsHelper:
         """
         Writes formatted Markdown content to a Google Doc.
         """
-        relevant_content = extract_relevant_content(content)
+        # relevant_content = extract_relevant_content(content)
         
         # Convert markdown to HTML
-        html_content = markdown2.markdown(relevant_content, extras=["tables"])
+        html_content = markdown2.markdown(content, extras=["tables"])
 
         # Requests list to batch update Google Docs
         requests = []
