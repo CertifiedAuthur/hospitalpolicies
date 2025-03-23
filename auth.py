@@ -86,7 +86,7 @@ scopes=[
 #             logout()
 
 
-#     # 2. File upload handling with atomic write
+    # 2. File upload handling with atomic write
 #     if "client_secret_uploaded" not in st.session_state:
 #         st.session_state.client_secret_uploaded = False
 
@@ -208,15 +208,44 @@ def auth_flow():
             st.error(f"Error loading credentials: {e}")
             logout()
             return None  # ✅ Explicitly return None
+        
+        
+    # File upload handling with atomic write
+    if "client_secret_uploaded" not in st.session_state:
+        st.session_state.client_secret_uploaded = False
+
+    if not st.session_state.client_secret_uploaded:
+        uploaded_file = st.sidebar.file_uploader(
+            "Upload Client Secret JSON",
+            type=["json"],
+            key="client_secret_upload"
+        )
+        
+        if uploaded_file:
+            # Atomic write pattern
+            temp_path = client_secret_path.with_suffix(".tmp")
+            try:
+                # Write to temporary file first
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.getvalue())
+                
+                # Atomic rename
+                temp_path.rename(client_secret_path)
+                st.session_state.client_secret_uploaded = True
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Failed to save file: {str(e)}")
+                return
     
     # Check if client secret is already uploaded
-    if not client_secret_path.exists():
-        uploaded_file = st.sidebar.file_uploader("Upload Client Secret JSON", type=["json"])
+    # if not client_secret_path.exists():
+    #     uploaded_file = st.sidebar.file_uploader("Upload Client Secret JSON", type=["json"])
 
-        if uploaded_file:
-            with open(client_secret_path, "wb") as f:
-                f.write(uploaded_file.getvalue())
-            st.rerun()
+    #     if uploaded_file:
+    #         with open(client_secret_path, "wb") as f:
+    #             f.write(uploaded_file.getvalue())
+    #         st.rerun()
 
     # Stop execution if client_secret.json is missing
     if not client_secret_path.exists():
