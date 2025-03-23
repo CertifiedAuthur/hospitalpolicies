@@ -1,13 +1,10 @@
 import json
 from pathlib import Path
-import tempfile
-from time import sleep
-from google.auth.transport.requests import Request
+import base64
 import streamlit as st
 from googleapiclient.discovery import build
 from streamlit_js import st_js, st_js_blocking
 from google_auth_oauthlib.flow import Flow
-from google.oauth2.credentials import Credentials
 
 
 # Function to retrieve data from local storage
@@ -43,13 +40,14 @@ auth_status_path = auth_cache_dir / "auth_success.txt"
 credentials_path = auth_cache_dir / "credentials.json"
 
 
-scopes=[
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "openid",
-        "https://www.googleapis.com/auth/documents",
-        "https://www.googleapis.com/auth/drive"
-    ]
+scopes = [
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "openid"
+]
 
 
 # def auth_flow():
@@ -86,7 +84,7 @@ scopes=[
 #             logout()
 
 
-    # 2. File upload handling with atomic write
+#     # 2. File upload handling with atomic write
 #     if "client_secret_uploaded" not in st.session_state:
 #         st.session_state.client_secret_uploaded = False
 
@@ -172,13 +170,10 @@ scopes=[
 def auth_flow():
     st.sidebar.title("Authentication")
     
-    # init_session()
-    
     # Initialize with absolute paths
     auth_cache_dir = Path(__file__).parent / "auth_cache"
     auth_cache_dir.mkdir(parents=True, exist_ok=True)
     
-    client_secret_path = auth_cache_dir / "client_secret.json"
     credentials_path = auth_cache_dir / "credentials.json"
     auth_status_path = auth_cache_dir / "auth_success.txt"
 
@@ -204,58 +199,21 @@ def auth_flow():
             st.session_state.credentials = credentials_json
 
             st.sidebar.success("Great! You're successfully logged in. Enjoy your session!")
-            return credentials_json  # ✅ Always return a dictionary
+            return credentials_json
 
         except (json.JSONDecodeError, ValueError) as e:
             st.error(f"Error loading credentials: {e}")
             logout()
-            return None  # ✅ Explicitly return None
-        
-        
-    # File upload handling with atomic write
-    if "client_secret_uploaded" not in st.session_state:
-        st.session_state.client_secret_uploaded = False
-
-    if not st.session_state.client_secret_uploaded:
-        uploaded_file = st.sidebar.file_uploader(
-            "Upload Client Secret JSON",
-            type=["json"],
-            key="client_secret_upload"
-        )
-        
-        if uploaded_file:
-            # Atomic write pattern
-            temp_path = client_secret_path.with_suffix(".tmp")
-            try:
-                # Write to temporary file first
-                with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getvalue())
-                
-                # Atomic rename
-                temp_path.rename(client_secret_path)
-                st.session_state.client_secret_uploaded = True
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Failed to save file: {str(e)}")
-                return
-    
-    # Check if client secret is already uploaded
-    # if not client_secret_path.exists():
-    #     uploaded_file = st.sidebar.file_uploader("Upload Client Secret JSON", type=["json"])
-
-    #     if uploaded_file:
-    #         with open(client_secret_path, "wb") as f:
-    #             f.write(uploaded_file.getvalue())
-    #         st.rerun()
-
-    # Stop execution if client_secret.json is missing
-    if not client_secret_path.exists():
-        st.warning("Please upload a client secret file to continue.")
+            return None 
+           
+    try:
+        client_secret_b64 = st.secrets.google_auth.client_secret_b64
+        client_config = json.loads(base64.b64decode(client_secret_b64).decode())
+    except Exception as e:
+        st.error(f"🔒 Configuration error: {str(e)}")
         st.stop()
-
+        
     # Handle OAuth Authentication
-    client_config = json.loads(client_secret_path.read_text())
     redirect_uri = "http://localhost:8501"
     
     flow = Flow.from_client_config(client_config, scopes=scopes, redirect_uri=redirect_uri)
@@ -288,8 +246,6 @@ def auth_flow():
         authorization_url, state = flow.authorization_url(access_type="offline", prompt="consent")
         st.link_button("Sign in with Google", authorization_url)
         return None
-
-
 
 def logout():
     """Completely clears all authentication artifacts"""
