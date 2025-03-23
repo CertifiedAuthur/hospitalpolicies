@@ -172,7 +172,7 @@ scopes=[
 def auth_flow():
     st.sidebar.title("Authentication")
     
-    init_session()
+    # init_session()
     
     # Initialize with absolute paths
     auth_cache_dir = Path(__file__).parent / "auth_cache"
