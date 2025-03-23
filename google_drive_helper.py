@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -11,15 +12,32 @@ from reportlab.lib import colors
 from format_document import extract_relevant_content
 
 
+
+def clean_html(text):
+    """Sanitizes and fixes unclosed HTML tags in the proposal text."""
+    text = text.replace("\n", "<br/>")  # Ensure new lines are properly handled
+
+    # Ensure strong tags are properly closed
+    text = re.sub(r"<strong>(.*?)$", r"<strong>\1</strong>", text)
+
+    # Ensure paragraph tags are closed properly
+    text = re.sub(r"<p>(.*?)$", r"<p>\1</p>", text)
+
+    # Remove any unclosed tags
+    text = re.sub(r"<([^>]+)(?<!/)>", r"<\1/>", text)
+
+    return text
+
+
 def create_pdf(file_path, content):
     """
     Converts Markdown content into formatted text and generates a well-spaced PDF.
     """
     
-    # relevant_content = extract_relevant_content(content)
+    relevant_content = clean_html(content)
     
     # Convert Markdown to HTML
-    html_content = markdown2.markdown(content, extras=["tables"])
+    html_content = markdown2.markdown(relevant_content, extras=["tables"])
 
     # Set up PDF document
     doc = SimpleDocTemplate(file_path, pagesize=letter)

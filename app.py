@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-import shutil
+from datetime import datetime
 import sqlite3
 import tempfile
 import time
@@ -187,7 +187,7 @@ Current RFQ Requirements: {query}
 
 
 custom_prompt = """
-You are an **expert assistant specializing in proposal writing** for procurement bids. Your role is to **generate professional, structured, and detailed proposals** based on the Request for Quotation (RFQ) documents stored in the **analysis_workspace** directory. 
+You are an **expert assistant specializing in proposal writing** for procurement bids. Your role is to **generate professional, structured, and detailed proposals**. 
 
 **IMPORTANT RULES:**  
 - **DO NOT HALLUCINATE**: Only use the provided RFQ details and relevant organizational data.  
@@ -390,195 +390,261 @@ def main():
             st.sidebar.warning("No working directory found to delete.")
     
     # Google Drive section
-    if st.sidebar.button("Google Drive"):
-        st.session_state.show_gdrive_form = True
-        if "drive_service" in st.session_state:
-            del st.session_state.drive_service
+    # if st.sidebar.button("Google Drive"):
+    #     st.session_state.show_gdrive_form = True
+    #     if "drive_service" in st.session_state:
+    #         del st.session_state.drive_service
 
-    if st.session_state.get("show_gdrive_form", False):
-        # Authenticate FIRST
-        service = auth_flow()
-        if not service:
-            st.session_state.show_gdrive_form = False
-            st.stop()
+    # if st.session_state.get("show_gdrive_form", False):
+    #     # Authenticate FIRST
+    #     service = auth_flow()
+    #     if not service:
+    #         st.session_state.show_gdrive_form = False
+    #         st.stop()
 
-        # Store service only after successful auth
-        st.session_state.drive_service = service
+    #     # Store service only after successful auth
+    #     st.session_state.drive_service = service
 
-        with st.sidebar:
-            with st.form("google_drive_upload_form", clear_on_submit=True):
-                st.write("### Google Drive Upload")
-                google_drive_link = st.text_input("Root Folder Link:", 
-                                                value=st.session_state.get("google_drive_link", ""))
-                client_name = st.text_input("Client Name:", 
-                                            value=st.session_state.get("client_name", ""))
-                pdf_file_name = st.text_input("PDF Name:", 
-                                            value=st.session_state.get("pdf_file_name", ""))
+    #     with st.sidebar:
+    #         with st.form("google_drive_upload_form", clear_on_submit=True):
+    #             st.write("### Upload Proposal to Google Drive")
+    #             google_drive_link = st.text_input("Google Drive Root Folder Link:", 
+    #                                             value=st.session_state.get("google_drive_link", ""))
                 
-                submitted = st.form_submit_button("📤 Upload to Google Drive")
-                if submitted:
-                    st.session_state.update({
-                        "google_drive_link": google_drive_link,
-                        "client_name": client_name,
-                        "pdf_file_name": pdf_file_name,
-                        "upload_triggered": True
-                    })
+    #             submitted = st.form_submit_button("📤 Upload to Google Drive")
+    #             if submitted:
+    #                 st.session_state.update({
+    #                     "google_drive_link": google_drive_link,
+    #                     "upload_triggered": True
+    #                 })
 
-    if st.session_state.get("upload_triggered"):
-        try:
-            st.session_state.upload_triggered = False
+    # if st.session_state.get("upload_triggered"):
+    #     try:
+    #         st.session_state.upload_triggered = False
             
-            # Validate proposal exists
-            if not st.session_state.get("proposal_text"):
-                st.error("Generate a proposal first!")
-                st.stop()
+    #         # Validate proposal exists
+    #         if not st.session_state.get("proposal_text"):
+    #             st.error("Generate a proposal first!")
+    #             st.stop()
 
-            # Get cached service
-            service = st.session_state.drive_service
+    #         # Get cached service
+    #         service = st.session_state.drive_service
             
-            helper = GoogleDriveHelper(service)
+    #         helper = GoogleDriveHelper(service)
 
-            # Get root folder ID from input
-            root_folder_id = get_folder_id_from_url(st.session_state.google_drive_link)
+    #         # Get root folder ID from input
+    #         root_folder_id = get_folder_id_from_url(st.session_state.google_drive_link)
+    #         # Auto-generate folder structure: Proposals/YYYY-MM-DD/
+    #         today_date = datetime.today().strftime("%Y-%m-%d")
+    #         proposal_folder_id = helper.create_folder("Proposals", parent_folder_id=root_folder_id)
+    #         date_folder_id = helper.create_folder(today_date, parent_folder_id=proposal_folder_id)
 
-            # Create folder structure
-            proposal_folder_id = helper.create_folder("Proposals", parent_folder_id=root_folder_id)
-            client_folder_id = helper.create_folder(
-                st.session_state.client_name.strip(), 
-                parent_folder_id=proposal_folder_id
-            )
+    #         # Generate timestamped file name
+    #         timestamp = datetime.now().strftime("%H%M%S")
+    #         file_name = f"Proposal_{today_date}_{timestamp}.pdf"
 
-            # Upload file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                file_link = helper.upload_file(
-                    folder_id=client_folder_id,
-                    file_path=tmp.name,
-                    content=st.session_state.proposal_text,
-                    file_name=f"{st.session_state.pdf_file_name}.pdf"
-                )
+    #         # Upload file
+    #         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+    #             file_link = helper.upload_file(
+    #                 folder_id=date_folder_id,
+    #                 file_path=tmp.name,
+    #                 content=st.session_state.proposal_text,
+    #                 file_name=f"{st.session_state.pdf_file_name}.pdf"
+    #             )
 
-            placeholder = st.empty()
-            placeholder.success(f"✅ Upload Successful! [View File]({file_link})")
-            time.sleep(20)
-            placeholder.empty()
+    #         placeholder = st.empty()
+    #         placeholder.success(f"✅ Upload Successful! [View File]({file_link})")
+    #         time.sleep(20)
+    #         placeholder.empty()
 
-            # **Clear form values from session state after successful upload**
-            keys_to_clear = ["google_drive_link", "client_name", "pdf_file_name", "show_gdrive_form"]
-            for key in keys_to_clear:
-                st.session_state.pop(key, None)
+    #         # **Clear form values from session state after successful upload**
+    #         keys_to_clear = ["google_drive_link", "show_gdrive_form"]
+    #         for key in keys_to_clear:
+    #             st.session_state.pop(key, None)
                 
-            # Collapse the form
-            st.session_state.show_gdocs_form = False
-            st.rerun()
+    #         # Collapse the form
+    #         st.session_state.show_drive_form = False
+    #         st.rerun()
             
 
-        except Exception as e:
-            st.error(f"Upload failed: {str(e)}")
-            st.error(traceback.format_exc())
+    #     except Exception as e:
+    #         st.error(f"Upload failed: {str(e)}")
+    #         st.error(traceback.format_exc())
 
     
     # Google Docs Integration    
-    if st.sidebar.button("Google Docs"):
-        st.session_state.show_gdocs_form = True
-        if "docs_service" in st.session_state:
-            del st.session_state.docs_service
+    # if st.sidebar.button("Google Docs"):
+    #     st.session_state.show_gdocs_form = True
+    #     if "docs_service" in st.session_state:
+    #         del st.session_state.docs_service
+    #     if "drive_service" in st.session_state:
+    #         del st.session_state.drive_service
+    #     if "service" in st.session_state:
+    #         del st.session_state.service
+
+    # if st.session_state.get("show_gdocs_form", False):
+    #     # Authenticate and get credentials
+    #     credentials_data = auth_flow()
+    #     if not credentials_data or "token" not in credentials_data:
+    #         st.session_state.show_gdocs_form = False
+    #         st.stop()
+        
+    #     # Convert credentials data to Credentials object
+    #     try:
+    #         creds = Credentials.from_authorized_user_info(credentials_data['token'])
+    #     except KeyError:
+    #         st.error("Invalid credentials format")
+    #         st.stop()
+        
+    #     # Create proper services
+    #     st.session_state.docs_service = build("docs", "v1", credentials=creds)
+    #     st.session_state.drive_service = build("drive", "v3", credentials=creds)
+        
+    #     # Automatically retrieve the root folder ID
+    #     try:
+    #         about = st.session_state.drive_service.about().get(fields="rootFolderId").execute()
+    #         st.session_state.root_folder_id = about.get("rootFolderId")
+    #     except Exception as e:
+    #         st.error(f"Failed to retrieve root folder ID: {e}")
+    #         st.stop()
+
+    #     with st.sidebar:
+    #         with st.form("google_docs_upload_form", clear_on_submit=True):
+    #             st.write("### Google Docs Upload")
+    #             # google_drive_link = st.text_input("Google Drive Root Folder Link:", 
+    #             #                                 value=st.session_state.get("google_drive_link", ""))
+                
+    #             submitted = st.form_submit_button("📤 Upload to Google Drive")
+    #             if submitted:
+    #                 st.session_state.update({
+    #                     "upload_triggered": True
+    #                 })
+                    
+    # if st.session_state.get("upload_triggered"):
+    #     try:
+    #         # Validate proposal exists
+    #         if not st.session_state.proposal_text:
+    #             st.error("Generate a proposal first!")
+    #             st.stop()
+                
+    #         # Get cached service
+    #         st.session_state.upload_triggered = False
+
+    #         service = st.session_state.docs_service  # Docs service instance
+    #         service1 = st.session_state.drive_service  # Drive service instance
+
+    #         docs_helper = GoogleDocsHelper(service)
+    #         drive_helper = GoogleDriveAPI(service1)
+
+
+    #         # Get root folder ID from input
+    #         # root_folder_id = get_folder_id_from_url(st.session_state.google_drive_link)
+    #         # # Ensure root_folder_id is valid
+    #         # if not root_folder_id:
+    #         #     st.error("Invalid Google Drive folder link! Please enter a correct link.")
+    #         #     st.stop()
+            
+    #         # Get the user's root folder ID automatically from session state
+    #         root_folder_id = st.session_state.get("root_folder_id")
+    #         if not root_folder_id:
+    #             st.error("Failed to retrieve your Google Drive root folder.")
+    #             st.stop()
+
+    #         # Auto-generate folder structure: Proposals/YYYY-MM-DD/
+    #         today_date = datetime.today().strftime("%Y-%m-%d")
+    #         proposal_folder_id = drive_helper.create_folder("Proposals", parent_folder_id=root_folder_id)
+    #         date_folder_id = drive_helper.create_folder(today_date, parent_folder_id=proposal_folder_id)
+
+    #         # Generate timestamped file name
+    #         timestamp = datetime.now().strftime("%H%M%S")
+    #         doc_file_name = f"Proposal_{today_date}_{timestamp}"
+
+    #         # Create document
+    #         doc_id = docs_helper.create_document(doc_file_name)
+    #         docs_helper.write_to_document(doc_id, st.session_state.proposal_text)
+
+    #         # Move document to client folder
+    #         st.session_state.drive_service.files().update(
+    #             fileId=doc_id,
+    #             addParents=date_folder_id,
+    #             removeParents='root' if root_folder_id == 'root' else root_folder_id,
+    #             fields='id, parents'
+    #         ).execute()
+
+    #         placeholder = st.empty()
+    #         placeholder.success(f"✅ Upload Successful! [View Document](https://docs.google.com/document/d/{doc_id}/view)")
+    #         time.sleep(20)
+    #         placeholder.empty()
+            
+    #         # **Clear form values and collapse form after successful upload**
+    #         keys_to_clear = ["google_drive_link", "client_name", "doc_file_name", "show_gdocs_form"]
+    #         for key in keys_to_clear:
+    #             st.session_state.pop(key, None)
+                
+    #         # Collapse the form
+    #         st.session_state.show_gdocs_form = False
+    #         st.rerun()
+
+    #     except Exception as e:
+    #         st.error(f"Upload failed: {str(e)}")
+    #         st.error(traceback.format_exc())
+    
+    if st.sidebar.button("📝 Save to Google Docs"):
         if "drive_service" in st.session_state:
             del st.session_state.drive_service
-        if "service" in st.session_state:
-            del st.session_state.service
-
-    if st.session_state.get("show_gdocs_form", False):
-        # Authenticate and get credentials
         credentials_data = auth_flow()
-        if not credentials_data or "token" not in credentials_data:
-            st.session_state.show_gdocs_form = False
-            st.stop()
-        
-        # Convert credentials data to Credentials object
         try:
+            # Authentication flow
+            if not credentials_data or "token" not in credentials_data:
+                st.stop()
+
+            # Service initialization
             creds = Credentials.from_authorized_user_info(credentials_data['token'])
-        except KeyError:
-            st.error("Invalid credentials format")
-            st.stop()
-        
-        # Create proper services
-        st.session_state.docs_service = build("docs", "v1", credentials=creds)
-        st.session_state.drive_service = build("drive", "v3", credentials=creds)
-
-        with st.sidebar:
-            with st.form("google_docs_upload_form", clear_on_submit=True):
-                st.write("### Google Docs Upload")
-                google_drive_link = st.text_input("Root Folder Link:", 
-                                                value=st.session_state.get("google_drive_link", ""))
-                client_name = st.text_input("Client Name:", 
-                                        value=st.session_state.get("client_name", ""))
-                doc_file_name = st.text_input("Document Name:", 
-                                            value=st.session_state.get("doc_file_name", ""))
-                
-                submitted = st.form_submit_button("📄 Upload to Google Docs")
-                if submitted:
-                    st.session_state.update({
-                        "google_drive_link": google_drive_link,
-                        "client_name": client_name,
-                        "doc_file_name": doc_file_name,
-                        "upload_triggered": True
-                    })
-                    
-    if st.session_state.get("upload_triggered"):
-        try:
-            # Validate proposal exists
-            if not st.session_state.proposal_text:
-                st.error("Generate a proposal first!")
-                st.stop()
-                
-            # Get cached service
-            st.session_state.upload_triggered = False
-
-            service = st.session_state.docs_service  # Docs service instance
-            service1 = st.session_state.drive_service  # Drive service instance
-
-            docs_helper = GoogleDocsHelper(service)
-            drive_helper = GoogleDriveAPI(service1)
-
-
-            # Get root folder ID from input
-            root_folder_id = get_folder_id_from_url(st.session_state.google_drive_link)
-            # Ensure root_folder_id is valid
-            if not root_folder_id:
-                st.error("Invalid Google Drive folder link! Please enter a correct link.")
-                st.stop()
-
-            # Create folder structure
-            proposal_folder_id = drive_helper.create_folder("Proposals", parent_folder_id=root_folder_id)
-            client_folder_id = drive_helper.create_folder(
-                st.session_state.client_name.strip(), 
-                parent_folder_id=proposal_folder_id
-            )
-
-            # Create document
-            doc_id = docs_helper.create_document(st.session_state.doc_file_name)
-            docs_helper.write_to_document(doc_id, st.session_state.proposal_text)
-
-            # Move document to client folder
-            st.session_state.drive_service.files().update(
-                fileId=doc_id,
-                addParents=client_folder_id,
-                removeParents='root' if root_folder_id == 'root' else root_folder_id,
-                fields='id, parents'
-            ).execute()
-
-            placeholder = st.empty()
-            placeholder.success(f"✅ Upload Successful! [View Document](https://docs.google.com/document/d/{doc_id}/view)")
-            time.sleep(20)
-            placeholder.empty()
+            docs_service = build("docs", "v1", credentials=creds)
+            drive_service = build("drive", "v3", credentials=creds)
             
-            # **Clear form values and collapse form after successful upload**
-            keys_to_clear = ["google_drive_link", "client_name", "doc_file_name", "show_gdocs_form"]
-            for key in keys_to_clear:
-                st.session_state.pop(key, None)
-                
-            # Collapse the form
-            st.session_state.show_gdocs_form = False
+            # Initial validation
+            if not st.session_state.get("proposal_text"):
+                placeholder = st.empty()
+                placeholder.error("❗ Generate a proposal before uploading!")
+                time.sleep(5)
+                placeholder.empty()
+                st.rerun()
+
+            # Folder structure creation
+            with st.spinner("Creating folder structure..."):
+                # Get the root folder ID
+                root_folder = drive_service.files().get(fileId='root', fields='id').execute()
+                root_folder_id = root_folder['id']
+                proposals_folder_id = GoogleDriveAPI(drive_service).create_folder(
+                    "Proposals", 
+                    parent_folder_id=root_folder_id
+                )
+                date_folder_id = GoogleDriveAPI(drive_service).create_folder(
+                    datetime.now().strftime("%Y-%m-%d"),
+                    parent_folder_id=proposals_folder_id
+                )
+
+            # Document creation and content writing
+            with st.spinner("Creating document..."):
+                doc_helper = GoogleDocsHelper(docs_service)
+                doc_id = doc_helper.create_document(
+                    f"Proposal_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                )
+                doc_helper.write_to_document(doc_id, st.session_state.proposal_text)
+
+            # Move document to target folder
+            with st.spinner("Finalizing upload..."):
+                drive_service.files().update(
+                    fileId=doc_id,
+                    addParents=date_folder_id,
+                    removeParents='root',
+                    fields='id, parents'
+                ).execute()
+
+            # Success feedback
+            st.success(f"✅ Document saved! [View in Google Docs](https://docs.google.com/document/d/{doc_id}/)")
+            time.sleep(5)  # Show success message briefly
             st.rerun()
 
         except Exception as e:

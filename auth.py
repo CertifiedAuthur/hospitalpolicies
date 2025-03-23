@@ -48,7 +48,7 @@ scopes=[
         "https://www.googleapis.com/auth/userinfo.email",
         "openid",
         "https://www.googleapis.com/auth/documents",
-        "https://www.googleapis.com/auth/drive.file"
+        "https://www.googleapis.com/auth/drive"
     ]
 
 
@@ -185,9 +185,18 @@ def auth_flow():
             with open(credentials_path, "r") as f:
                 credentials_json = json.load(f)
 
-            # Ensure token is properly parsed
+            # # Ensure token is properly parsed
+            # if isinstance(credentials_json.get("token"), str):
+            #     credentials_json["token"] = json.loads(credentials_json["token"])
+            
+            # ✅ Ensure token is properly parsed (convert from string to dictionary)
             if isinstance(credentials_json.get("token"), str):
-                credentials_json["token"] = json.loads(credentials_json["token"])
+                try:
+                    credentials_json["token"] = json.loads(credentials_json["token"])
+                except json.JSONDecodeError:
+                    st.error("Invalid token format in credentials.")
+                    logout()
+                    return None
 
             # Store credentials in session state (optional)
             st.session_state.credentials = credentials_json
@@ -216,7 +225,7 @@ def auth_flow():
 
     # Handle OAuth Authentication
     client_config = json.loads(client_secret_path.read_text())
-    redirect_uri = "https://hospitalpolicies-mwh7xj6f6vuyvnhqwqkob5.streamlit.app"
+    redirect_uri = "http://localhost:8501"
     
     flow = Flow.from_client_config(client_config, scopes=scopes, redirect_uri=redirect_uri)
     auth_code = st.query_params.get("code")
