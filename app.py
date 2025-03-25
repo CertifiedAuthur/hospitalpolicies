@@ -253,7 +253,7 @@ def generate_answer():
             rag = RAGFactory.create_rag(str(working_dir))  
 
             # Send combined query to RAG
-            response = rag.query(query, QueryParam(mode="hybrid"))
+            response = rag.query(full_prompt, QueryParam(mode="hybrid"))
 
             # Store in chat history
             st.session_state.chat_history.append(("You", query))
