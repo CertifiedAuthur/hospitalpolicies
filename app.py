@@ -1,10 +1,12 @@
+import base64
 import json
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import sqlite3
-import tempfile
+import gcsfs
+from google.oauth2 import service_account
 import time
 import traceback
 import numpy as np
@@ -286,9 +288,20 @@ def generate_answer():
 
     with st.spinner("Generating answer..."):
         try:
-            working_dir = Path("./analysis_workspace")
-            working_dir.mkdir(parents=True, exist_ok=True)
-            rag = RAGFactory.create_rag(str(working_dir))  
+            # working_dir = Path("./analysis_workspace")
+            # working_dir.mkdir(parents=True, exist_ok=True)
+            # rag = RAGFactory.create_rag(str(working_dir))  
+            # ✅ Authenticate and initialize GCS
+            gcs_fs = get_gcs_fs()
+            print("Service Account Authenticated")
+
+            # ✅ Define bucket and sync files
+            bucket_name = "lightrag-bucket"
+            prefix = "analysis_workspace"
+            local_dir = sync_gcs_to_local(gcs_fs, bucket_name, prefix)
+            print(f"Files synced to {local_dir}")
+
+            rag = RAGFactory.create_rag(str(local_dir))
 
             # Send combined query to RAG
             response = rag.query(full_prompt, QueryParam(mode="hybrid"))
@@ -368,6 +381,108 @@ def parse_proposal_content(proposal_text):
 
     return parsed_data
 
+
+def sync_gcs_to_local(gcs_fs, gcs_bucket, gcs_prefix):
+    """Ensure all files from GCS are downloaded to 'analysis_workspace'"""
+    local_cache = Path("./analysis_workspace")
+    gcs_path = f"{gcs_bucket}/{gcs_prefix}".rstrip("/")
+
+    # Ensure the local directory exists
+    local_cache.mkdir(parents=True, exist_ok=True)
+
+    try:
+        gcs_files = gcs_fs.ls(gcs_path)
+        print(f"\n🔍 Found {len(gcs_files)} files in GCS: {gcs_files}")  # Debugging
+
+        if not gcs_files:
+            raise FileNotFoundError(f"GCS path '{gcs_path}' is empty")
+
+    except Exception as e:
+        raise FileNotFoundError(f"Error accessing GCS path '{gcs_path}': {e}")
+
+    print(f"\n🔍 Found {len(gcs_files)} files in GCS:")
+    for f in gcs_files:
+        print(f"   - {f}")
+
+    print("\n🔄 Checking local sync...\n")
+
+    downloaded_files = []
+
+    for blob_path in gcs_files:
+        # Skip directories
+        if blob_path.endswith("/"):
+            print(f"⏩ Skipping directory: {blob_path}")
+            continue  # Skip to the next file
+
+        local_path = local_cache / Path(blob_path).name
+        try:
+            # Always download if the local folder is empty
+            if not any(local_cache.iterdir()):
+                download = True
+            else:
+                # Check timestamps
+                blob_info = gcs_fs.info(blob_path)
+                gcs_last_modified = datetime.fromisoformat(blob_info["updated"]).astimezone(timezone.utc)
+
+                if local_path.exists():
+                    local_last_modified = datetime.fromtimestamp(local_path.stat().st_mtime, tz=timezone.utc)
+                    download = local_last_modified < gcs_last_modified
+                else:
+                    download = True
+
+            if download:
+                # Delete the existing file before writing new content
+                if local_path.exists():
+                    local_path.unlink()
+
+                with gcs_fs.open(blob_path, "rb") as remote_file:
+                    content = remote_file.read()
+                    local_path.write_bytes(content)
+                    downloaded_files.append(local_path)
+                    print(f"✅ Downloaded: {local_path} ({len(content)} bytes)")
+                    time.sleep(1)  # Reduce throttling
+
+            else:
+                print(f"⏩ Skipping (up-to-date): {blob_path}")
+
+        except Exception as e:
+            print(f"❌ Error downloading {blob_path}: {e}")
+
+    # Print local folder content
+    local_files = list(local_cache.glob("*"))
+    print(f"\n📂 Local 'analysis_workspace' now contains {len(local_files)} files:")
+    for f in local_files:
+        print(f"   - {f.name}")
+
+    if len(downloaded_files) == len(gcs_files) - 1:  # Subtract 1 because we skip the directory
+        print("\n✅ All files downloaded successfully.\n")
+    else:
+        print("\n⚠️ Some files are missing! Check logs.\n")
+
+    return local_cache
+
+
+# Authenticate with GCS
+def get_gcs_fs():
+    """Ensure GCS authentication is working"""
+    try:
+        service_account_b64 = st.secrets.gcs.service_account_b64
+        service_account_info = json.loads(base64.b64decode(service_account_b64).decode())
+
+        # Create credentials
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=[
+                "https://www.googleapis.com/auth/devstorage.full_control",
+                "https://www.googleapis.com/auth/cloud-platform"
+            ]
+        )
+
+        gcs_fs = gcsfs.GCSFileSystem(token=credentials)
+        return gcs_fs
+    except Exception as e:
+        st.error(f"GCS Authentication Failed: {str(e)}")
+        st.stop()
 
 
 
@@ -461,6 +576,7 @@ def main():
             import shutil
             shutil.rmtree(working_dir)
             st.sidebar.success("Processing reset! The working directory has been deleted.")
+            st.rerun()
         else:
             st.sidebar.warning("No working directory found to delete.")
     
