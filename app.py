@@ -19,12 +19,17 @@ from constant import SECTION_KEYWORDS, select_section
 from db_helper import check_if_file_exists_in_section, check_working_directory, delete_file, get_uploaded_sections, initialize_database
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
-from googleapiclient.http import MediaFileUpload
 from inference import process_files_and_links
-from google_drive_helper import GoogleDriveHelper
 from google_docs_helper import GoogleDocsHelper, GoogleDriveAPI
 from auth import auth_flow, logout, validate_session
-from utils import clean_text, get_folder_id_from_url
+from utils import clean_text
+
+auth_cache_dir = Path(__file__).parent / "auth_cache"
+
+credentials_path = auth_cache_dir / "credentials.json"
+auth_status_path = auth_cache_dir / "auth_success.txt"
+    
+    
 
 def initialize_session_state():
     if "chat_history" not in st.session_state:
@@ -487,6 +492,16 @@ def get_gcs_fs():
 
 
 def main():
+     # Authentication at the start using credentials file
+    # Check authentication
+    credentials_exist = credentials_path.exists() and auth_status_path.exists()
+
+    if not credentials_exist:
+        credentials = auth_flow()  # Run authentication flow
+        if not credentials:
+            st.error("Please Authenticate, so you can use the App!...")
+            return  # Stop execution if authentication fails
+
     st.title("Proposal and Chatbot System")
     st.write("Upload a document and ask questions based on structured knowledge retrieval.")
     
@@ -585,14 +600,22 @@ def main():
     if st.sidebar.button("📝 Save Proposal to Google Drive"):
         if "drive_service" in st.session_state:
             del st.session_state.drive_service
-        credentials_data = auth_flow()
 
         try:
-            if not credentials_data or "token" not in credentials_data:
+            credentials = json.loads(credentials_path.read_text())  # Load main JSON
+
+            # Decode the nested JSON inside "token"
+            if isinstance(credentials.get("token"), str):
+                credentials["token"] = json.loads(credentials["token"])
+
+            # Ensure the required keys exist
+            required_keys = {"client_id", "client_secret", "refresh_token"}
+            if not isinstance(credentials["token"], dict) or not required_keys.issubset(credentials["token"].keys()):
+                st.error("❗ Invalid credentials file. Please log in again.")
                 st.stop()
 
             # ✅ Initialize services
-            creds = Credentials.from_authorized_user_info(credentials_data['token'])
+            creds = Credentials.from_authorized_user_info(credentials['token'])
             docs_service = build("docs", "v1", credentials=creds)
             drive_service = build("drive", "v3", credentials=creds)
             drive_api = GoogleDriveAPI(drive_service)
