@@ -492,7 +492,6 @@ def get_gcs_fs():
 
 
 def main():
-     # Authentication at the start using credentials file
     # Check authentication
     credentials_exist = credentials_path.exists() and auth_status_path.exists()
 
