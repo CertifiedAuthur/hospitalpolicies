@@ -94,13 +94,29 @@ def upload_file(file_path: Path):
         print(f"Error uploading file {file_key}: {e}")
 
 
-def download_all_files(download_dir: Path):
+# def download_all_files(download_dir: Path):
+#     download_dir.mkdir(parents=True, exist_ok=True)
+#     files = list_files()
+#     for file_key in files:
+#         file_name = file_key.split("/")[-1]
+#         download_path = download_dir / file_name
+#         client.download_file(SPACE_NAME, file_key, str(download_path))
+
+def download_all_files(download_dir: Path): 
     download_dir.mkdir(parents=True, exist_ok=True)
     files = list_files()
+    
+    # Skip downloading if files already exist in local dir
+    if any(download_dir.iterdir()):
+        print(f"📁 Directory '{download_dir}' is not empty. Skipping download.")
+        return
+    
     for file_key in files:
         file_name = file_key.split("/")[-1]
         download_path = download_dir / file_name
         client.download_file(SPACE_NAME, file_key, str(download_path))
+        print(f"⬇️ Downloaded {file_key} to {download_path}")
+
 
 
 def delete_all():

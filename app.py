@@ -311,7 +311,7 @@ def generate_answer():
     with st.spinner("Generating answer..."):
         try:
             working_dir = Path("./analysis_workspace")
-            working_dir.mkdir(parents=True, exist_ok=True)
+            # working_dir.mkdir(parents=True, exist_ok=True)
 
             download_all_files(working_dir)
 
@@ -698,7 +698,7 @@ def main():
             ).execute()
 
             
-            st.sidebar(f"✅ Upload Successful! [View Document](https://docs.google.com/document/d/{new_google_doc_id}/view)")
+            st.sidebar.markdown(f"✅ Upload Successful! [View Document](https://docs.google.com/document/d/{new_google_doc_id}/view)")
             # time.sleep(10)
 
             # st.rerun()
