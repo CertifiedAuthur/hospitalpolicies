@@ -32,10 +32,29 @@ def delete_existing_files():
     for file_key in files:
         client.delete_object(Bucket=SPACE_NAME, Key=file_key)
 
+# def upload_file(file_path: Path):
+#     file_key = f"{FOLDER_NAME}/{file_path.name}"
+#     with open(file_path, "rb") as f:
+#         client.upload_fileobj(f, SPACE_NAME, file_key)
+
+# Function to upload a file to the Space
 def upload_file(file_path: Path):
     file_key = f"{FOLDER_NAME}/{file_path.name}"
-    with open(file_path, "rb") as f:
-        client.upload_fileobj(f, SPACE_NAME, file_key)
+    
+    # Check if the file already exists in the Space
+    if file_exists(file_key):
+        print(f"{file_key} exists in the Space. It will be replaced.")
+        # Optionally, delete the existing file before uploading new one
+        client.delete_object(Bucket=SPACE_NAME, Key=file_key)
+
+    # Upload the new file
+    try:
+        with open(file_path, "rb") as f:
+            client.upload_fileobj(f, SPACE_NAME, file_key)
+        print(f"Uploaded {file_key} to Space.")
+    except ClientError as e:
+        print(f"Error uploading file {file_key}: {e}")
+
 
 def download_all_files(download_dir: Path):
     download_dir.mkdir(parents=True, exist_ok=True)

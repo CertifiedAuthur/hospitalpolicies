@@ -11,6 +11,7 @@ import time
 import traceback
 import numpy as np
 import streamlit as st
+from do_spaces import delete_all, delete_existing_files, upload_file, download_all_files
 from lightrag import LightRAG, QueryParam
 from lightrag.llm.openai import openai_embed, gpt_4o_mini_complete, gpt_4o_complete
 from langchain_openai import OpenAI
@@ -309,20 +310,23 @@ def generate_answer():
 
     with st.spinner("Generating answer..."):
         try:
-            # working_dir = Path("./analysis_workspace")
-            # working_dir.mkdir(parents=True, exist_ok=True)
-            # rag = RAGFactory.create_rag(str(working_dir))  
+            working_dir = Path("./analysis_workspace")
+            working_dir.mkdir(parents=True, exist_ok=True)
+
+            download_all_files(working_dir)
+
+            rag = RAGFactory.create_rag(str(working_dir))  
             # ✅ Authenticate and initialize GCS
-            gcs_fs = get_gcs_fs()
-            print("Service Account Authenticated")
+            # gcs_fs = get_gcs_fs()
+            # print("Service Account Authenticated")
 
-            # ✅ Define bucket and sync files
-            bucket_name = "lightrag-bucket"
-            prefix = "analysis_workspace"
-            local_dir = sync_gcs_to_local(gcs_fs, bucket_name, prefix)
-            print(f"Files synced to {local_dir}")
+            # # ✅ Define bucket and sync files
+            # bucket_name = "lightrag-bucket"
+            # prefix = "analysis_workspace"
+            # local_dir = sync_gcs_to_local(gcs_fs, bucket_name, prefix)
+            # print(f"Files synced to {local_dir}")
 
-            rag = RAGFactory.create_rag(str(local_dir))
+            # rag = RAGFactory.create_rag(str(local_dir))
 
             # Send combined query to RAG
             response = rag.query(full_prompt, QueryParam(mode="hybrid"))
@@ -569,6 +573,16 @@ def main():
     if (files or web_links) and not st.session_state["files_processed"]:
         for file in files:
             file_name = file.name
+    
+    # if (files or web_links) and not st.session_state["files_processed"]:
+    #     delete_existing_files()  # Clear bucket directory
+
+    #     for file in files:
+    #         file_name = file.name
+    #         with open(file_name, "wb") as f:
+    #             f.write(file.read())
+
+    #         upload_file(Path(file_name))  # Upload to DigitalOcean
 
             # Check if file exists in database or working directory
             file_in_db = check_if_file_exists_in_section(file_name, section)
@@ -595,6 +609,7 @@ def main():
 
     # Reset processing state and delete working directory
     if st.sidebar.button("Reset Processing", key="reset"):
+        delete_all()  # Remove from DigitalOcean
         # Clear session state except for initialized state
         keys_to_keep = {"initialized"}
         for key in list(st.session_state.keys()):
