@@ -19,18 +19,56 @@ client = session.client('s3',
     aws_secret_access_key=SECRET_KEY
 )
 
+# def list_files():
+#     try:
+#         response = client.list_objects_v2(Bucket=SPACE_NAME, Prefix=FOLDER_NAME + "/")
+#         return [content["Key"] for content in response.get("Contents", [])]
+#     except ClientError as e:
+#         print("Error listing files:", e)
+#         return []
+
+# def delete_existing_files():
+#     files = list_files()
+#     for file_key in files:
+#         client.delete_object(Bucket=SPACE_NAME, Key=file_key)
+
 def list_files():
+    """List all files inside the folder in the Space, excluding the folder key itself."""
     try:
         response = client.list_objects_v2(Bucket=SPACE_NAME, Prefix=FOLDER_NAME + "/")
-        return [content["Key"] for content in response.get("Contents", [])]
+        file_keys = []
+        for content in response.get("Contents", []):
+            key = content["Key"]
+            # Skip if the key is just the folder itself (e.g., "knowledge-base/")
+            if key != FOLDER_NAME + "/":
+                file_keys.append(key)
+        return file_keys
     except ClientError as e:
         print("Error listing files:", e)
         return []
 
 def delete_existing_files():
+    """Delete all files inside the folder, but not the folder itself."""
     files = list_files()
     for file_key in files:
-        client.delete_object(Bucket=SPACE_NAME, Key=file_key)
+        try:
+            client.delete_object(Bucket=SPACE_NAME, Key=file_key)
+            print(f"Deleted {file_key}")
+        except ClientError as e:
+            print(f"Error deleting {file_key}: {e}")
+
+
+def file_exists(file_key: str) -> bool:
+    try:
+        client.head_object(Bucket=SPACE_NAME, Key=file_key)
+        return True
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return False
+        else:
+            print(f"Error checking if file exists: {e}")
+            raise
+
 
 # def upload_file(file_path: Path):
 #     file_key = f"{FOLDER_NAME}/{file_path.name}"
